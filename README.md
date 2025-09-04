@@ -4,7 +4,7 @@ This will be your portfolio repository. Use this as a [template repository](http
 # About Me
 My name is Megan Diulus, I'm a junior course 6-3 and on the varsity cross country and track teams! I also love art, specifically colored pencil drawing! I have three dogs art home: a bernese mountain dog, a rotweiler, and a bullmastif!
 
-![my dog bowser](../images/dog.jpeg)
+![my dog bowser](images/dog.jpeg)
 
 # Table of Contents
 [Link to Assignment 1](assignments/assignment1.md)
