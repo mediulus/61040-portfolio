@@ -4,6 +4,6 @@ My name is Megan Diulus, I'm a junior course 6-3 and on the varsity cross countr
 <img src="./assets/images/dog.jpeg" alt="my dog bowser" width="250"/>
 <img src="./assets/images/meg_and_dad.jpeg" alt="my dog bowser" width="300"/>
 
-# Table of Contents
-[Link to Assignment 1](assignments/assignment1.md)
+# Assignments
+- [Assignment 1](assignments/assignment1.md)
 
