@@ -166,13 +166,13 @@ Jump to:
                 a set of Tokens with
                     a token String
                     an owner User
-                    an expiration String
+                    an expiration Time
                     a scopes {String}
                     a note String
                     a revoked Flag
 
             actions
-                create(owner: User, expiration: String, scopes: {String}, note: String ): token: Token
+                create(owner: User, expiration: Time, scopes: {String}, note: String ): token: Token
                     requires: owner exists
                     effects: generates a secret token that it shows to the user once after creation
                              creates a new Toke:
@@ -187,12 +187,184 @@ Jump to:
                     requires: token to exist and revoked = False
                     effects: sets revoked = True for that token
 
-                authenticate(owner: Userscope: String, token: String): (user:User)
+                authenticate(owner: User, scope: String, token: String): (user:User)
                     requires: there exists a token with token=token, expires > now, and revoked = False
                     effects: returns token.owner
 
 In my opinion, GitHub should improve their page simply because these tokens are not truly like passwords. A password is a single, long-term credential that authenticates a user across their entire account, and if it is compromised the user must actively reset or change it. By contrast, a GitHub personal access token is designed to be more temporary and flexible: a user can create multiple tokens, each with its own scopes and expiration date, and tokens can be revoked individually without touching the account password. This makes them behave less like “another password” and more like disposable keys that can be granted or taken away as needed. Highlighting this distinction more clearly would help users understand that tokens provide better security practices—such as reducing the damage of a leaked credential—rather than simply being “a password by another name.”
+
 ## Excercise 4
+
+### Confrence Room Booking
+
+        concept ConferenceRoomBooking
+            purpose Allow users to reserve conference rooms for specific times so that conflicts are avoided.
+            principle
+                A user may request a room for a continuous time interval.
+                A booking is valid if and only if no existing booking overlaps the requested interval in the same room. 
+                Only the user who created a booking may modify or delete it.
+
+            state 
+                a set of Rooms with
+                    a roomNumber Number
+                    a bookings {Booking}
+                
+                a set of Bookings with
+                    a booker User
+                    a startTime Time
+                    a room Room
+                    an endTime Time
+
+                a set of Users with
+                    a username String
+                
+                actions
+                    bookRoom(booker: User, startTime: Time, endTime: Time, roomNumber: Room): (booking: Booking)
+                        requires: 
+                            Room number exists with that roomNumber
+                            booker is an existing User
+                            the endTime is after the startTime
+                            no existing booking for the room overlaps with [startTime, endTime]
+                        effects: creates and returns a new Booking with the parameters defined
+                    
+                    editBookingStart(booking: Booking, newStart: Time, user: User ): booking: Booking // wondering if the parameters for this should change to be like "Room, User, and newStart?"
+                        requires: 
+                            the booking to exist
+                            user = booking.booker
+                            newStart < booking.endTime
+                            newStart does not overlap with other bookings for booking.room
+
+                        effects: sets the booking startTime = newStart
+
+                    editBookingEnd(booking: Booking, newEnd: Time, user: User ): booking: Booking // wondering if the parameters for this should change to be like "Room, User, and newEnd?"
+                        requires: 
+                            booking exists
+                            user = booking.booker
+                            newEnd > booking.startTime
+                            newEnd does not overlap with other bookings for booking.room
+                        effects: sets the booking endTime = newEnd
+
+                    deleteBooking(booking: Booking, user: User)
+                        requires:
+                            booking exists
+                            user = booking.booker
+                        effects:
+                            removes booking from booking.room
+
+
+Notes: 
+    Parameters for edits: It’s clearer and less error-prone to pass the Booking object itself (plus the acting User) rather than reconstructing it from (Room, User, Time). This way, you know exactly which booking is being edited.
+
+
+### Billable Hours Tracking
+
+        concept BillableHoursTracking 
+            purpose Record work sessions per employee and project to enable accurate client billing.
+            principle
+                Each session belongs to exactly one employee and one project and spans a continuous time interval.
+                An employee may have at most one active (open) session at a time.
+                If an employee forgets to end a session, they must end it first, then may edit start/end to correct it.
+                Sessions cannot have negative duration or overlap other sessions for the same employee.
+
+
+            state
+                a set of Employees with
+                    a name String
+
+                a set of Projects with
+                    a code String
+                    a displayName String
+
+                a set of Sessions with
+                    a employee Employee
+                    a project Project
+                    a note String
+                    a startTime Time
+                    a endTime Time?
+                    a isActive Flag
+
+            actions
+
+                startSession(employee: Employee, project: Project, note: String, startTime: Time): (session: Session)
+                    requires:
+                        employee exists
+                        project exists
+                        no session exists with session.employee = employee and session.isActive = true
+                    effects:
+                        creates and returns a new Session with given fields, endTime = null, isActive = true
+
+
+                endSession(employee: Employee, endTime: Time): (session: Session)
+                    requires:
+                        there exists an active session with session.employee = employee
+                        endTime > session.startTime
+                    effects:
+                        sets session.endTime = endTime
+                        sets session.isActive = false
+                        returns session
+
+
+                editSessionStart(session: Session, employee: Employee, newStart: Time): Session
+                    requires:
+                        session exists
+                        employee = session.employee
+                        session.isActive = false
+                        newStart < session.endTime
+                        changing start time does not cause overlap with any other session of employee
+                    effects:
+                        sets session.startTime = newStart
+                        sets session.needsReview = true
+                        returns session
+
+                editSessionEnd(session: Session, employee: Employee, newEnd: Time): Session
+                    requires:
+                        session exists
+                        employee = session.employee
+                        session.isActive = false
+                        newEnd > session.startTime
+                        changing end time does not cause overlap with any other session of employee
+                    effects:
+                        sets session.endTime = newEnd
+                        sets session.needsReview = true
+                        returns session
+
+
+Note: The user must end their session before editing the session, additionally there cannot be any overlapping sessions for an employee
+
+
+### Time-Based One-Time Password
+
+        concept Time-Based One-Time Password
+            purpose
+                Provide a second authentication factor in addition to a password,
+                so that even if a password is compromised, the attacker still
+                cannot log in without access to the user’s device.
+
+            principle
+                Each account shares a secret key with the server.
+                Both the server and the user’s device use the current time window plus the secret to generate a numeric token.
+                A token is valid only for that short window, limiting replay.
+
+            state
+                a set of Accounts with
+                    a username: String
+                    a secretKey: String
+
+                system parameters with
+                    a timeWindow: Number 
+
+            actions
+                registerUser(username: String): (account: Account)
+                    requires: account does not already exist for the user
+                    effects: creates an account for the user and assigns a secretKey
+
+                generateToken(username: String, currentTime: Time): Number
+                    requires: account exists for user
+                    effects: uses account.secretKey and currentTime to compute a short-lived code
+
+                checkCode(username: String, testingCode: Number, currentTime: Time): Boolean
+                    requires: account exists for user
+                    effects: verifies whether testingCode matches the valid token for that time window
 
 
 [Back to Top](#problem-set-1)
