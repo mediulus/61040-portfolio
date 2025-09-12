@@ -6,4 +6,4 @@ My name is Megan Diulus, I'm a junior course 6-3 and on the varsity cross countr
 
 # Assignments
 - [Assignment 1](assignments/assignment1.md)
-
+- [Problem Set 1](assignments/pset1.md)
